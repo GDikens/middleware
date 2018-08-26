@@ -14,23 +14,15 @@ public class Middleware{
     Socket socket;
     boolean isConnected;
     
-    PrintWriter s_out = null; //used to write for the service
-    BufferedReader s_in = null; //used to get data from the service
+    PrintWriter out = null; //used to write for the service
+    BufferedReader in = null; //used to get data from the service
     
     String host = "localhost";
     int port = 9999;
+
+    private final String USER_AGENT = "Mozilla/5.0";
+
     
-    public Middleware(){
-
-        this.serviceLookUp("addService");
-        
-        try{
-            this.connect();
-        }catch(Exception e){
-            System.out.println("Error Connecting");
-        }
-
-    }
 
     private void serviceLookUp(String service){
 
@@ -39,61 +31,75 @@ public class Middleware{
 
     }
 
-    private void connect() throws IOException{
-        if(this.service_info!=null){
-            String host = service_info[0];
-            int port = Integer.parseInt(service_info[1]);
-            socket = new Socket();
-            
-            try{
-                socket.connect(new InetSocketAddress(host , port));
-                //System.out.println("Connected");
-                
-                //writer for socket
-                s_out = new PrintWriter( socket.getOutputStream(), true);
-                //reader for socket
-                s_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                
-                isConnected = true;
-            }catch (UnknownHostException e){
-                //Host not found
-                isConnected = false;
-                System.err.println("Don't know about host : " + host);
-                System.exit(1);
-            }
-        }
+    private String connect(String service, String... params) throws IOException{
+
+        String host = service_info[0];
+        int port = Integer.parseInt(service_info[1]);
+
+        String url = formatMessage(service, params);
+
+        //String url = "http://www.google.com/search?q=mkyong";
+		
+		URL obj = new URL(url);
+		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+		// optional default is GET
+		con.setRequestMethod("GET");
+
+		//add request header
+		con.setRequestProperty("User-Agent", USER_AGENT);
+
+		int responseCode = con.getResponseCode();
+		System.out.println("\nSending 'GET' request to URL : " + url);
+		System.out.println("Response Code : " + responseCode);
+
+		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+
+		while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+		}
+		in.close();
+
+		//print result
+        //System.out.println(response.toString());
+
+        return response.toString();
+        
     }
 
-    public int getParameters(int num1, int num2) throws Exception{
+    public int getParameters(String service, int num1, int num2) throws Exception{
         int response;
         try{
-            response = Integer.parseInt(requestServer("addservice", Integer.toString(num1), Integer.toString(num2)));
+            response = Integer.parseInt(requestServer(service, Integer.toString(num1), Integer.toString(num2)));
         }catch(Exception e){
-            throw new Exception("Serive Error");
+            throw new Exception("Service Error");
         }
         return response;
     }
 
     private String requestServer(String service, String... params) throws IOException{
+
+        if(service.equals("gcd")){
+
+            serviceLookUp("gcdService");
+
+            return connect("gcd", params);
+
+            //Send message to server
+            
+            
+        }
         
         //request for addservice
-        if(service.equals("addservice")){
-            //Send message to server
-            String message = formatMessage(service, params);
+        if(service.equals("fibbonachi")){
+
+            serviceLookUp("fibbonachiService");
+
+            return connect("fibbonachi", params);
+
             
-            
-            s_out.println( message );
-            //System.out.println("Message send");
-                
-                
-            //Get response from server
-            String response = "";
-            String resp;
-            while ((resp = s_in.readLine()) != null){
-                response = response + resp;
-                //System.out.println( resp );
-            }
-            return response;
         }
         
         
@@ -102,17 +108,13 @@ public class Middleware{
     }
 
     private String formatMessage(String service, String... params){
-        if(service.equals("addservice")){
-            String msg = "GET / HTTP/1.1\r\n\r\n";
-            for(int i=0;i<params.length;i++){
-                if(i>0){
-                    msg = msg+"&";
-                }   
-                msg = msg+"param"+i+"="+params[i];
-            }
-            return msg;
-        }
-        return "";
+
+        //String url = "GET / HTTP/1.1\r\n\r\n";
+        String url = "http://localhost:3000/"+ service +"?num1="+ params[0] + "&num2=" + params[1];
+        //http://127.0.0.1:3000/gcd?num1=50&num2=10
+        
+        return url;
+
         
     }
     

@@ -7,7 +7,7 @@ class Client {
         Middleware mware = new Middleware();
 
         try{
-            System.out.println(mware.getParameters(Integer.parseInt(args[0]),Integer.parseInt(args[1])));
+            System.out.println("The answer is "+ mware.getParameters(args[0], Integer.parseInt(args[1]),Integer.parseInt(args[2])));
         }catch(Exception e){
             System.out.println(e.getMessage());
         }
